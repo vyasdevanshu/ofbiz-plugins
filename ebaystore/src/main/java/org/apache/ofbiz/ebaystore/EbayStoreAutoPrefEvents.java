@@ -31,9 +31,9 @@ import org.apache.ofbiz.entity.GenericValue;
 import org.apache.ofbiz.service.GenericServiceException;
 import org.apache.ofbiz.service.LocalDispatcher;
 
-public class EbayStoreAutoPrefEvents{
+public class EbayStoreAutoPrefEvents {
 
-    public static final String MODULE = EbayStoreAutoPrefEvents.class.getName();
+    private static final String MODULE = EbayStoreAutoPrefEvents.class.getName();
 
     public static String ebayAutoPrefCond (HttpServletRequest request, HttpServletResponse response) {
         LocalDispatcher dispatcher = (LocalDispatcher) request.getAttribute("dispatcher");
@@ -84,7 +84,7 @@ public class EbayStoreAutoPrefEvents{
             }
         }
 
-        Map<String, Object> bestOfferCondition = new HashMap<String, Object>();
+        Map<String, Object> bestOfferCondition = new HashMap<>();
         bestOfferCondition.put("productStoreId", productStoreId);
         bestOfferCondition.put("userLogin", userLogin);
         bestOfferCondition.put("enabled", enabled);
@@ -103,7 +103,7 @@ public class EbayStoreAutoPrefEvents{
             Map<String, Object> result = dispatcher.runSync("ebayBestOfferPrefCond", bestOfferCondition);
             if (ServiceUtil.isError(result)) {
                 request.setAttribute("_ERROR_MESSAGE_", ServiceUtil.getErrorMessage(result));
-                Debug.log( ServiceUtil.getErrorMessage(result),MODULE);
+                Debug.log(ServiceUtil.getErrorMessage(result), MODULE);
                 return "error";
             }
         } catch (GenericServiceException e) {

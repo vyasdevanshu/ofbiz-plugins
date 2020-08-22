@@ -51,8 +51,8 @@ import org.xml.sax.SAXException;
 
 public class BirtViewHandler implements ViewHandler {
 
-    public static final String MODULE = BirtViewHandler.class.getName();
-    public static final String resource_error = "BirtErrorUiLabels";
+    private static final String MODULE = BirtViewHandler.class.getName();
+    private static final String RES_ERROR = "BirtErrorUiLabels";
 
     protected ServletContext servletContext = null;
 
@@ -77,7 +77,7 @@ public class BirtViewHandler implements ViewHandler {
     public void render(String name, String page, String info,
             String contentType, String encoding, HttpServletRequest request,
             HttpServletResponse response) throws ViewHandlerException {
-        
+
         try {
             IReportEngine engine = org.apache.ofbiz.birt.BirtFactory.getReportEngine();
             // open report design
@@ -89,7 +89,7 @@ public class BirtViewHandler implements ViewHandler {
             }
             if (UtilValidate.isEmpty(page)) {
                 Locale locale = request.getLocale();
-                throw new ViewHandlerException(UtilProperties.getMessage(resource_error, "BirtErrorNotPublishedReport", locale));
+                throw new ViewHandlerException(UtilProperties.getMessage(RES_ERROR, "BirtErrorNotPublishedReport", locale));
             }
             if (page.startsWith("component://")) {
                 InputStream reportInputStream = BirtFactory.getReportInputStreamFromLocation(page);
@@ -97,7 +97,7 @@ public class BirtViewHandler implements ViewHandler {
             } else {
                 design = engine.openReportDesign(page);
             }
-            
+
             Map<String, Object> appContext = UtilGenerics.cast(engine.getConfig().getAppContext());
             BirtWorker.setWebContextObjects(appContext, request, response);
 
@@ -114,13 +114,13 @@ public class BirtViewHandler implements ViewHandler {
             if (locale == null) {
                 locale = UtilHttp.getLocale(request);
             }
-            
+
             // set override content type
             String overrideContentType = request.getParameter(BirtWorker.getBirtContentType());
             if (UtilValidate.isNotEmpty(overrideContentType)) {
                 contentType = overrideContentType;
             }
-            
+
             // set output file name to get also file extension
             String outputFileName = request.getParameter(BirtWorker.getBirtOutputFileName());
             if (UtilValidate.isNotEmpty(outputFileName)) {

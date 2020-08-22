@@ -67,7 +67,7 @@ public class LinkedInAuthenticator implements Authenticator {
 
     public static final String props = "linkedInAuth.properties";
 
-    public static final String resource = "PassportUiLabels";    
+    private static final String RESOURCE = "PassportUiLabels";
 
     protected LocalDispatcher dispatcher;
 
@@ -76,7 +76,6 @@ public class LinkedInAuthenticator implements Authenticator {
     /**
      * Method called when authenticator is first initialized (the delegator
      * object can be obtained from the LocalDispatcher)
-     *
      * @param dispatcher The ServiceDispatcher to use for this Authenticator
      */
     @Override
@@ -87,11 +86,9 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Method to authenticate a user.
-     * 
-     * For LinkedIn users, we only check if the username(userLoginId) exists an 
-     * externalAuthId, and the externalAuthId has a valid accessToken in 
+     * For LinkedIn users, we only check if the username(userLoginId) exists an
+     * externalAuthId, and the externalAuthId has a valid accessToken in
      * LinkedInUser entity.
-     *
      * @param userLoginId   User's login id
      * @param password      User's password
      * @param isServiceAuth true if authentication is for a service call
@@ -114,15 +111,9 @@ public class LinkedInAuthenticator implements Authenticator {
                     user = LinkedInAuthenticator.getUserInfo(getMethod, Locale.getDefault());
                 }
             }
-        } catch (GenericEntityException e) {
-            throw new AuthenticatorException(e.getMessage(), e);
-        } catch (IOException e) {
-            throw new AuthenticatorException(e.getMessage(), e);
-        } catch (AuthenticatorException e) {
+        } catch (GenericEntityException | ParserConfigurationException | AuthenticatorException | IOException e) {
             throw new AuthenticatorException(e.getMessage(), e);
         } catch (SAXException e) {
-            throw new AuthenticatorException(e.getMessage(), e);
-        } catch (ParserConfigurationException e) {
             throw new AuthenticatorException(e.getMessage(), e);
         } finally {
             if (getMethod != null) {
@@ -136,7 +127,6 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Logs a user out
-     *
      * @param username User's username
      * @throws org.apache.ofbiz.common.authentication.api.AuthenticatorException
      *          when logout fails
@@ -147,7 +137,6 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Reads user information and syncs it to OFBiz (i.e. UserLogin, Person, etc)
-     *
      * @param userLoginId
      * @throws org.apache.ofbiz.common.authentication.api.AuthenticatorException
      *          user synchronization fails
@@ -206,7 +195,9 @@ public class LinkedInAuthenticator implements Authenticator {
             if (parentTx != null) {
                 try {
                     TransactionUtil.resume(parentTx);
-                    if (Debug.verboseOn()) Debug.logVerbose("Resumed the parent transaction.", MODULE);
+                    if (Debug.verboseOn()) {
+                        Debug.logVerbose("Resumed the parent transaction.", MODULE);
+                    }
                 } catch (GenericTransactionException e) {
                     Debug.logError(e, "Could not resume parent nested transaction: " + e.getMessage(), MODULE);
                 }
@@ -228,15 +219,9 @@ public class LinkedInAuthenticator implements Authenticator {
                     user = getUserInfo(getMethod, Locale.getDefault());
                 }
             }
-        } catch (GenericEntityException e) {
-            throw new AuthenticatorException(e.getMessage(), e);
-        } catch (IOException e) {
-            throw new AuthenticatorException(e.getMessage(), e);
-        } catch (AuthenticatorException e) {
+        } catch (GenericEntityException | ParserConfigurationException | AuthenticatorException | IOException e) {
             throw new AuthenticatorException(e.getMessage(), e);
         } catch (SAXException e) {
-            throw new AuthenticatorException(e.getMessage(), e);
-        } catch (ParserConfigurationException e) {
             throw new AuthenticatorException(e.getMessage(), e);
         } finally {
             if (getMethod != null) {
@@ -255,7 +240,7 @@ public class LinkedInAuthenticator implements Authenticator {
         }
         return createUser(user, system);
     }
-    
+
     private String createUser(Document user, GenericValue system) throws AuthenticatorException {
         Map<String, String> userInfo = parseLinkedInUserInfo(user);
 
@@ -353,7 +338,6 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Updates a user's password.
-     *
      * @param username    User's username
      * @param password    User's current password
      * @param newPassword User's new password
@@ -367,7 +351,6 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Weight of this authenticator (lower weights are run first)
-     *
      * @return the weight of this Authenicator
      */
     @Override
@@ -377,7 +360,6 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Is the user synchronzied back to OFBiz
-     *
      * @return true if the user record is copied to the OFB database
      */
     @Override
@@ -387,7 +369,6 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Is this expected to be the only authenticator, if so errors will be thrown when users cannot be found
-     *
      * @return true if this is expected to be the only Authenticator
      */
     @Override
@@ -397,7 +378,6 @@ public class LinkedInAuthenticator implements Authenticator {
 
     /**
      * Flag to test if this Authenticator is enabled
-     *
      * @return true if the Authenticator is enabled
      */
     @Override
@@ -415,7 +395,7 @@ public class LinkedInAuthenticator implements Authenticator {
             // Debug.logInfo("Json Response from LinkedIn: " + responseString, MODULE);
             userInfo = UtilXml.readXmlDocument(responseString);
         } else {
-            String errMsg = UtilProperties.getMessage(resource, "GetOAuth2AccessTokenError", UtilMisc.toMap("error", responseString), locale);
+            String errMsg = UtilProperties.getMessage(RESOURCE, "GetOAuth2AccessTokenError", UtilMisc.toMap("error", responseString), locale);
             throw new AuthenticatorException(errMsg);
         }
         return userInfo;

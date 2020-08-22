@@ -104,7 +104,7 @@ under the License.
     </request-map>
     <request-map uri="DeleteSprint">
         <security auth="true" https="true"/>
-        <event type="simple" invoke="DeleteSprint" path="component://scrum/minilang/ScrumEvents.xml"/>
+        <event type="simple" invoke="deleteSprint" path="component://scrum/minilang/ScrumEvents.xml"/>
         <response name="success" type="view" value="SprintList"></response>
     </request-map>
     <request-map uri="EditSprint">
@@ -761,9 +761,9 @@ under the License.
         <response name="success" type="view" value="ViewTimeSheet"/>
         <response name="error" type="view" value="ViewTimeSheet"/>
     </request-map>
-    <request-map uri="updateTimesheetToInProcess">
+    <request-map uri="processTimesheet">
         <security https="true" auth="true"/>
-        <event type="service" invoke="updateTimesheetToInProcess"/>
+        <event type="service" invoke="updateTimesheet"/>
         <response name="success" type="view" value="ViewTimeSheet"/>
         <response name="error" type="view" value="ViewTimeSheet"/>
     </request-map>
@@ -1086,7 +1086,7 @@ under the License.
     </request-map>
     <request-map uri="deleteBacklogItemContent">
         <security auth="true" https="true"/>
-        <event type="service" invoke="deleteCustRequestContent" />
+        <event type="service" invoke="expireCustRequestContent" />
         <response name="success" type="request-redirect" value="EditBacklogItemContent">
             <redirect-parameter name="custRequestId"/>
             <redirect-parameter name="productId"/>
@@ -1153,7 +1153,7 @@ under the License.
     </request-map>
     <request-map uri="CopyMemberLastSprint">
         <security https="true" auth="true"/>
-        <event type="simple" path="component://scrum/minilang/ScrumEvents.xml" invoke="CopyMemberLastSprint"/>
+        <event type="simple" path="component://scrum/minilang/ScrumEvents.xml" invoke="copyMemberLastSprint"/>
         <response name="success" type="request-redirect" value="ViewSprint">
             <redirect-parameter name="projectId" from="projectId"/>
             <redirect-parameter name="sprintId" from="sprintId" />

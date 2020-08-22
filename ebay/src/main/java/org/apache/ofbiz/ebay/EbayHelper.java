@@ -58,9 +58,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 public class EbayHelper {
-    private static final String configFileName = "ebayExport.properties";
+    private static final String CONFIG_FILE_NAME = "ebayExport.properties";
     private static final String MODULE = EbayHelper.class.getName();
-    public static final String resource = "EbayUiLabels";
+    private static final String RESOURCE = "EbayUiLabels";
 
     public static Map<String, Object> buildEbayConfig(Map<String, Object> context, Delegator delegator) {
         Map<String, Object> buildEbayConfigContext = new HashMap<>();
@@ -71,7 +71,7 @@ public class EbayHelper {
             try {
                 eBayConfig = EntityQuery.use(delegator).from("EbayConfig").where(UtilMisc.toMap("productStoreId", productStoreId)).queryOne();
             } catch (GenericEntityException e) {
-                String errMsg = UtilProperties.getMessage(resource, "buildEbayConfig.unableToFindEbayConfig" + e.getMessage(), locale);
+                String errMsg = UtilProperties.getMessage(RESOURCE, "buildEbayConfig.unableToFindEbayConfig" + e.getMessage(), locale);
                 return ServiceUtil.returnError(errMsg);
             }
             if (eBayConfig != null) {
@@ -85,14 +85,17 @@ public class EbayHelper {
                 buildEbayConfigContext.put("apiServerUrl", eBayConfig.getString("xmlGatewayUri"));
             }
         } else {
-            buildEbayConfigContext.put("devID", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.devID", delegator));
-            buildEbayConfigContext.put("appID", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.appID", delegator));
-            buildEbayConfigContext.put("certID", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.certID", delegator));
-            buildEbayConfigContext.put("token", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.token", delegator));
-            buildEbayConfigContext.put("compatibilityLevel", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.compatibilityLevel", delegator));
-            buildEbayConfigContext.put("siteID", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.siteID", delegator));
-            buildEbayConfigContext.put("xmlGatewayUri", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.xmlGatewayUri", delegator));
-            buildEbayConfigContext.put("apiServerUrl", EntityUtilProperties.getPropertyValue(configFileName, "eBayExport.xmlGatewayUri", delegator));
+            buildEbayConfigContext.put("devID", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.devID", delegator));
+            buildEbayConfigContext.put("appID", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.appID", delegator));
+            buildEbayConfigContext.put("certID", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.certID", delegator));
+            buildEbayConfigContext.put("token", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.token", delegator));
+            buildEbayConfigContext.put("compatibilityLevel", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.compatibilityLevel",
+                    delegator));
+            buildEbayConfigContext.put("siteID", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.siteID", delegator));
+            buildEbayConfigContext.put("xmlGatewayUri", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.xmlGatewayUri",
+                    delegator));
+            buildEbayConfigContext.put("apiServerUrl", EntityUtilProperties.getPropertyValue(CONFIG_FILE_NAME, "eBayExport.xmlGatewayUri",
+                    delegator));
         }
         return buildEbayConfigContext;
     }
@@ -146,7 +149,7 @@ public class EbayHelper {
         String dateOut;
         try {
             SimpleDateFormat formatIn = new SimpleDateFormat(fromDateFormat);
-            SimpleDateFormat formatOut= new SimpleDateFormat(toDateFormat);
+            SimpleDateFormat formatOut = new SimpleDateFormat(toDateFormat);
             Date data = formatIn.parse(dateIn, new ParsePosition(0));
             dateOut = formatOut.format(data);
         } catch (Exception e) {
@@ -171,12 +174,14 @@ public class EbayHelper {
         String partyId = "_NA_";
         String shipmentMethodTypeId = "NO_SHIPPING";
         try {
-            GenericValue ebayShippingMethod = EntityQuery.use(delegator).from("EbayShippingMethod").where("shipmentMethodName", shippingService, "productStoreId", productStoreId).queryOne();
+            GenericValue ebayShippingMethod = EntityQuery.use(delegator).from("EbayShippingMethod").where("shipmentMethodName", shippingService,
+                    "productStoreId", productStoreId).queryOne();
             if (ebayShippingMethod != null) {
                 partyId = ebayShippingMethod.getString("carrierPartyId");
                 shipmentMethodTypeId = ebayShippingMethod.getString("shipmentMethodTypeId");
             } else {
-                //Find ebay shipping method on the basis of shipmentMethodName so that we can create new record with productStorId, EbayShippingMethod data is required for atleast one productStore
+                //Find ebay shipping method on the basis of shipmentMethodName so that we can create new record with productStorId,
+                // EbayShippingMethod data is required for atleast one productStore
                 ebayShippingMethod = EntityQuery.use(delegator).from("EbayShippingMethod").where("shipmentMethodName", shippingService).queryFirst();
                 ebayShippingMethod.put("productStoreId", productStoreId);
                 delegator.create(ebayShippingMethod);
@@ -191,21 +196,24 @@ public class EbayHelper {
     }
 
     public static boolean createPaymentFromPaymentPreferences(Delegator delegator, LocalDispatcher dispatcher, GenericValue userLogin,
-        String orderId, String externalId, Timestamp orderDate, BigDecimal amount, String partyIdFrom) {
+            String orderId, String externalId, Timestamp orderDate, BigDecimal amount, String partyIdFrom) {
         List<GenericValue> paymentPreferences = null;
         try {
-            paymentPreferences = EntityQuery.use(delegator).from("OrderPaymentPreference").where("orderId", orderId, "statusId", "PAYMENT_RECEIVED", "paymentMethodTypeId", "EXT_EBAY").queryList();
+            paymentPreferences = EntityQuery.use(delegator).from("OrderPaymentPreference").where("orderId", orderId, "statusId", "PAYMENT_RECEIVED",
+                    "paymentMethodTypeId", "EXT_EBAY").queryList();
 
             if (UtilValidate.isNotEmpty(paymentPreferences)) {
                 Iterator<GenericValue> i = paymentPreferences.iterator();
                 while (i.hasNext()) {
                     GenericValue pref = i.next();
                     boolean okay = createPayment(dispatcher, userLogin, pref, orderId, externalId, orderDate, partyIdFrom);
-                    if (!okay)
+                    if (!okay) {
                         return false;
+                    }
                 }
             } else {
-                paymentPreferences = EntityQuery.use(delegator).from("OrderPaymentPreference").where("orderId", orderId, "statusId", "PAYMENT_NOT_RECEIVED", "paymentMethodTypeId", "EXT_EBAY").queryList();
+                paymentPreferences = EntityQuery.use(delegator).from("OrderPaymentPreference").where("orderId", orderId, "statusId",
+                        "PAYMENT_NOT_RECEIVED", "paymentMethodTypeId", "EXT_EBAY").queryList();
                 if (UtilValidate.isNotEmpty(paymentPreferences)) {
                     Iterator<GenericValue> i = paymentPreferences.iterator();
                     while (i.hasNext()) {
@@ -216,16 +224,14 @@ public class EbayHelper {
                             pref.store();
                         }
                         boolean okay = createPayment(dispatcher, userLogin, pref, orderId, externalId, orderDate, partyIdFrom);
-                        if (!okay)
+                        if (!okay) {
                             return false;
+                        }
                     }
                 }
-            } 
+            }
         } catch (GenericEntityException gee) {
             Debug.logError(gee, "Cannot get payment preferences for order #" + orderId, MODULE);
-            return false;
-        } catch (Exception e) {
-            Debug.logError(e, "Cannot get payment preferences for order #" + orderId, MODULE);
             return false;
         }
         return true;
@@ -262,10 +268,7 @@ public class EbayHelper {
                 return false;
             }
             return true;
-        } catch (GenericEntityException e) {
-            Debug.logError(e, "Failed to create the payment for order " + orderId, MODULE);
-            return false;
-        } catch (GenericServiceException e) {
+        } catch (GenericEntityException | GenericServiceException e) {
             Debug.logError(e, "Failed to create the payment for order " + orderId, MODULE);
             return false;
         }
@@ -301,7 +304,9 @@ public class EbayHelper {
 
         try {
             if (UtilValidate.isNotEmpty(name) && userLogin != null) {
-                if (Debug.verboseOn()) Debug.logVerbose("Creating Customer Party: " + name, MODULE);
+                if (Debug.verboseOn()) {
+                    Debug.logVerbose("Creating Customer Party: " + name, MODULE);
+                }
 
                 // Try to split the lastname from the firstname
                 String firstName = "";
@@ -315,7 +320,7 @@ public class EbayHelper {
                     lastName = name;
                 }
 
-                Map<String, Object> summaryResult = dispatcher.runSync("createPerson", UtilMisc.<String, Object> toMap("description",
+                Map<String, Object> summaryResult = dispatcher.runSync("createPerson", UtilMisc.<String, Object>toMap("description",
                         name, "firstName", firstName, "lastName", lastName, "userLogin", userLogin, "comments",
                         "Created via eBay"));
                 if (ServiceUtil.isError(summaryResult)) {
@@ -323,11 +328,11 @@ public class EbayHelper {
                     return null;
                 }
                 partyId = (String) summaryResult.get("partyId");
-                if (Debug.verboseOn()) Debug.logVerbose("Created Customer Party: " + partyId, MODULE);
+                if (Debug.verboseOn()) {
+                    Debug.logVerbose("Created Customer Party: " + partyId, MODULE);
+                }
             }
         } catch (GenericServiceException e) {
-            Debug.logError(e, "Failed to createPerson", MODULE);
-        } catch (Exception e) {
             Debug.logError(e, "Failed to createPerson", MODULE);
         }
         return partyId;

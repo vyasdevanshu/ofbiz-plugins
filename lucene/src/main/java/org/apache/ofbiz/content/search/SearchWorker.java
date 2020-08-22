@@ -39,11 +39,11 @@ import org.apache.ofbiz.service.LocalDispatcher;
  */
 public final class SearchWorker {
 
-    public static final String MODULE = SearchWorker.class.getName();
+    private static final String MODULE = SearchWorker.class.getName();
 
-    private static final Version LUCENE_VERSION = Version.LUCENE_8_5_0;
+    private static final Version LUCENE_VERSION = Version.LUCENE_8_5_2;
 
-    private SearchWorker() {}
+    private SearchWorker() { }
 
     public static void indexContentTree(LocalDispatcher dispatcher, Delegator delegator, String siteId) throws Exception {
         GenericValue content = delegator.makeValue("Content", UtilMisc.toMap("contentId", siteId));

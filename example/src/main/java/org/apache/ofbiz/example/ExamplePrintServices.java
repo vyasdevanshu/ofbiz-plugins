@@ -61,17 +61,17 @@ import org.xml.sax.SAXException;
 import freemarker.template.TemplateException;
 
 public class ExamplePrintServices {
-    public static final String MODULE = ExamplePrintServices.class.getName();
-    public static final String resource = "ExampleUiLabels";
+    private static final String MODULE = ExamplePrintServices.class.getName();
+    private static final String RESOURCE = "ExampleUiLabels";
 
     public static Map<String, Object> printReportPdf(DispatchContext dctx, Map<String, ? extends Object> context) {
-        Locale locale = (Locale)context.get("locale");
+        Locale locale = (Locale) context.get("locale");
         String screenLocation = "component://example/widget/example/ExampleReportScreens.xml";
         String reportScreenName = "ExampleReport";
         VisualTheme visualTheme = (VisualTheme) context.get("visualTheme");
         if (visualTheme == null) {
             visualTheme = ThemeFactory.resolveVisualTheme(null);
-        }        
+        }
         if (visualTheme == null) visualTheme = ThemeFactory.resolveVisualTheme(null);
         Map<String, Object> workContext = new HashMap<>();
         workContext.putAll(context);
@@ -82,11 +82,12 @@ public class ExamplePrintServices {
         try {
             screenStringRenderer = new MacroScreenRenderer("screen", visualTheme.getModelTheme().getScreenRendererLocation("screen"));
         } catch (TemplateException e) {
-            String errMsg = UtilProperties.getMessage(resource, "ExampleGeneralErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
+            String errMsg = UtilProperties.getMessage(RESOURCE, "ExampleGeneralErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()),
+                    locale);
             Debug.logError(e, errMsg, MODULE);
             return ServiceUtil.returnError(errMsg);
         } catch (IOException e) {
-            String errMsg = UtilProperties.getMessage(resource, "ExampleIOErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
+            String errMsg = UtilProperties.getMessage(RESOURCE, "ExampleIOErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
             Debug.logError(e, errMsg, MODULE);
             return ServiceUtil.returnError(errMsg);
         }
@@ -100,19 +101,22 @@ public class ExamplePrintServices {
         try {
             reportScreenRenderer.render(screenLocation, reportScreenName);
         } catch (GeneralException e) {
-            String errMsg = UtilProperties.getMessage(resource, "ExampleGeneralErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
+            String errMsg = UtilProperties.getMessage(RESOURCE, "ExampleGeneralErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()),
+                    locale);
             Debug.logError(e, errMsg, MODULE);
             return ServiceUtil.returnError(errMsg);
         } catch (IOException e) {
-            String errMsg = UtilProperties.getMessage(resource, "ExampleIOErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
+            String errMsg = UtilProperties.getMessage(RESOURCE, "ExampleIOErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
             Debug.logError(e, errMsg, MODULE);
             return ServiceUtil.returnError(errMsg);
         } catch (SAXException e) {
-            String errMsg = UtilProperties.getMessage(resource, "ExampleSAXErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
+            String errMsg = UtilProperties.getMessage(RESOURCE, "ExampleSAXErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()),
+                    locale);
             Debug.logError(e, errMsg, MODULE);
             return ServiceUtil.returnError(errMsg);
         } catch (ParserConfigurationException e) {
-            String errMsg = UtilProperties.getMessage(resource, "ExampleParserConfigurationErrorRenderingScreen", UtilMisc.toMap("errorString", e.toString()), locale);
+            String errMsg = UtilProperties.getMessage(RESOURCE, "ExampleParserConfigurationErrorRenderingScreen", UtilMisc.toMap("errorString",
+                    e.toString()), locale);
             Debug.logError(e, errMsg, MODULE);
             return ServiceUtil.returnError(errMsg);
         }
@@ -159,7 +163,8 @@ public class ExamplePrintServices {
             try {
                 job.print(myDoc, aset);
             } catch (PrintException pe) {
-                String errMsg = UtilProperties.getMessage(resource, "ExampleUnableToPrintPDFFromXSL-FO", UtilMisc.toMap("errorString", pe.toString()), locale);
+                String errMsg = UtilProperties.getMessage(RESOURCE, "ExampleUnableToPrintPDFFromXSL-FO", UtilMisc.toMap("errorString",
+                        pe.toString()), locale);
                 Debug.logError(pe, errMsg, MODULE);
                 return ServiceUtil.returnError(errMsg);
             }

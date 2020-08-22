@@ -32,7 +32,6 @@ import org.apache.ofbiz.service.testtools.OFBizTestCase;
 
 public class SolrTests extends OFBizTestCase {
 
-    protected GenericValue userLogin = null;
     private Map<String, Object> context;
     private Map<String, Object> response;
     private String validTestProductId = "GZ-1006";
@@ -41,11 +40,6 @@ public class SolrTests extends OFBizTestCase {
 
     public SolrTests(String name) {
         super(name);
-    }
-
-    @Override
-    protected void setUp() throws Exception {
-        userLogin = EntityQuery.use(delegator).from("UserLogin").where("userLoginId", "system").queryOne();
     }
 
     @Override
@@ -79,7 +73,7 @@ public class SolrTests extends OFBizTestCase {
 
     }
 
-    public void testAddToSolrIndex() throws Exception{
+    public void testAddToSolrIndex() throws Exception {
         context = new HashMap<>();
         context.put("productId", validTestProductId);
         response = dispatcher.runSync("addToSolrIndex", context);
@@ -115,7 +109,7 @@ public class SolrTests extends OFBizTestCase {
 
         products.add(product_1);
         products.add(product_2);
-        context  = new HashMap<>();
+        context = new HashMap<>();
         context.put("fieldList", products);
 
         response = dispatcher.runSync("addListToSolrIndex", context);
@@ -142,7 +136,7 @@ public class SolrTests extends OFBizTestCase {
 
         products.add(product_1);
         products.add(product_2);
-        context  = new HashMap<>();
+        context = new HashMap<>();
         context.put("fieldList", products);
 
         response = dispatcher.runSync("addListToSolrIndex", context);

@@ -41,7 +41,7 @@ import org.apache.ofbiz.entity.GenericEntityException;
 import org.apache.ofbiz.entity.GenericValue;
 import org.apache.ofbiz.entity.util.EntityQuery;
 import org.apache.ofbiz.entity.util.EntityUtilProperties;
-import org.apache.ofbiz.ldap.LdapLoginWorker;
+import org.apache.ofbiz.webapp.control.LoginWorker;
 import org.apache.ofbiz.service.GenericServiceException;
 import org.apache.ofbiz.service.LocalDispatcher;
 import org.apache.ofbiz.service.ModelService;
@@ -145,10 +145,10 @@ public abstract class AbstractOFBizAuthenticationHandler implements InterfaceOFB
         if (ModelService.RESPOND_SUCCESS.equals(loginResult.get(ModelService.RESPONSE_MESSAGE))) {
             GenericValue userLogin = (GenericValue) loginResult.get("userLogin");
             Map<String, Object> userLoginSession = checkMap(loginResult.get("userLoginSession"), String.class, Object.class);
-            return LdapLoginWorker.doMainLogin(request, response, userLogin, userLoginSession);
+            return LoginWorker.doMainLogin(request, response, userLogin, userLoginSession);
         } else {
             Map<String, String> messageMap = UtilMisc.toMap("errorMessage", (String) loginResult.get(ModelService.ERROR_MESSAGE));
-            String errMsg = UtilProperties.getMessage(LdapLoginWorker.resourceWebapp, "loginevents.following_error_occurred_during_login", messageMap, UtilHttp.getLocale(request));
+            String errMsg = UtilProperties.getMessage("SecurityextUiLabels", "loginevents.following_error_occurred_during_login", messageMap, UtilHttp.getLocale(request));
             throw new Exception(errMsg);
         }
     }
@@ -156,7 +156,6 @@ public abstract class AbstractOFBizAuthenticationHandler implements InterfaceOFB
     /**
      * An HTTP WebEvent handler that checks to see is a userLogin is logged out.
      * If yes, the user is forwarded to the login page.
-     *
      * @param request The HTTP request object for the current JSP or Servlet request.
      * @param response The HTTP response object for the current JSP or Servlet request.
      * @param rootElement Element root element of ldap config file

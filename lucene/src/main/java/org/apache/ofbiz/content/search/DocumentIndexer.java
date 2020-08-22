@@ -39,7 +39,7 @@ import org.apache.lucene.store.LockObtainFailedException;
 
 public class DocumentIndexer extends Thread {
 
-    public static final String MODULE = DocumentIndexer.class.getName();
+    private static final String MODULE = DocumentIndexer.class.getName();
 
     private static Map<String, DocumentIndexer> documentIndexerMap = new HashMap<>();
     private LinkedBlockingQueue<LuceneDocument> documentIndexQueue = new LinkedBlockingQueue<>();
@@ -88,7 +88,7 @@ public class DocumentIndexer extends Thread {
                     try {
                         indexWriter.close();
                         indexWriter = null;
-                    } catch(IOException ioe) {
+                    } catch (IOException ioe) {
                         Debug.logError(ioe, MODULE);
                     }
                 }
@@ -100,7 +100,7 @@ public class DocumentIndexer extends Thread {
                 try {
                 	StandardAnalyzer analyzer = new StandardAnalyzer();
                 	analyzer.setVersion(SearchWorker.getLuceneVersion());
-                    indexWriter  = new IndexWriter(this.indexDirectory, new IndexWriterConfig(analyzer));
+                    indexWriter = new IndexWriter(this.indexDirectory, new IndexWriterConfig(analyzer));
                 } catch (CorruptIndexException e) {
                     Debug.logError("Corrupted lucene index: "  + e.getMessage(), MODULE);
                     break;
@@ -116,18 +116,22 @@ public class DocumentIndexer extends Thread {
             try {
                 if (document == null) {
                     indexWriter.deleteDocuments(documentIdentifier);
-                    if (Debug.infoOn()) Debug.logInfo(getName() + ": deleted Lucene document: " + ofbizDocument, MODULE);
+                    if (Debug.infoOn()) {
+                        Debug.logInfo(getName() + ": deleted Lucene document: " + ofbizDocument, MODULE);
+                    }
                 } else {
                     indexWriter.updateDocument(documentIdentifier, document);
-                    if (Debug.infoOn()) Debug.logInfo(getName() + ": indexed Lucene document: " + ofbizDocument, MODULE);
+                    if (Debug.infoOn()) {
+                        Debug.logInfo(getName() + ": indexed Lucene document: " + ofbizDocument, MODULE);
+                    }
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 Debug.logError(e, getName() + ": error processing Lucene document: " + ofbizDocument, MODULE);
                 if (documentIndexQueue.peek() == null) {
                     try {
                         indexWriter.close();
                         indexWriter = null;
-                    } catch(IOException ioe) {
+                    } catch (IOException ioe) {
                         Debug.logError(ioe, MODULE);
                     }
                 }

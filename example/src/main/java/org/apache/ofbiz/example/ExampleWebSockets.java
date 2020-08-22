@@ -35,7 +35,7 @@ import org.apache.ofbiz.base.util.Debug;
 @ServerEndpoint("/ws/pushNotifications")
 public class ExampleWebSockets {
 
-    public static final String MODULE = ExampleWebSockets.class.getName();
+    private static final String MODULE = ExampleWebSockets.class.getName();
     private static Set<Session> clients = Collections.synchronizedSet(new HashSet<Session>());
     
 
@@ -44,8 +44,8 @@ public class ExampleWebSockets {
         try {
             if (session.isOpen()) {
                 synchronized (clients) {
-                    for(Session client : clients){
-                        if (!client.equals(session)){
+                    for (Session client : clients) {
+                        if (!client.equals(session)) {
                             client.getBasicRemote().sendText(msg);
                         }
                     }

@@ -36,10 +36,9 @@ import org.apache.ofbiz.birt.BirtWorker;
 
 public class BirtContainer implements Container {
 
-    public static final String MODULE = BirtContainer.class.getName();
+    private static final String MODULE = BirtContainer.class.getName();
 
-    protected String configFile;
-
+    private String configFile;
     private String name;
 
     @Override
@@ -82,7 +81,7 @@ public class BirtContainer implements Container {
         // create report engine
         Debug.logInfo("Create factory object", MODULE);
         IReportEngineFactory factory = (IReportEngineFactory) Platform
-              .createFactoryObject(IReportEngineFactory.EXTENSION_REPORT_ENGINE_FACTORY);
+                .createFactoryObject(IReportEngineFactory.EXTENSION_REPORT_ENGINE_FACTORY);
         if (factory == null) {
             throw new ContainerException("can not create birt engine factory");
         }
