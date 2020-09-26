@@ -18,22 +18,28 @@
  *******************************************************************************/
 package org.apache.ofbiz.ws.rs.openapi;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
 
+import org.apache.ofbiz.base.util.Debug;
 import org.apache.ofbiz.base.util.UtilValidate;
 import org.apache.ofbiz.service.DispatchContext;
 import org.apache.ofbiz.service.GenericServiceException;
 import org.apache.ofbiz.service.LocalDispatcher;
 import org.apache.ofbiz.service.ModelService;
 import org.apache.ofbiz.webapp.WebAppUtil;
+import org.apache.ofbiz.ws.rs.core.OFBizApiConfig;
 import org.apache.ofbiz.ws.rs.listener.ApiContextListener;
+import org.apache.ofbiz.ws.rs.model.ModelApi;
+import org.apache.ofbiz.ws.rs.model.ModelOperation;
+import org.apache.ofbiz.ws.rs.model.ModelResource;
 import org.apache.ofbiz.ws.rs.util.OpenApiUtil;
 
 import io.swagger.v3.jaxrs2.Reader;
@@ -44,13 +50,12 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;
-import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.parameters.HeaderParameter;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.QueryParameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -59,17 +64,17 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.tags.Tag;
 
 public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
-
+    private static final String MODULE = OFBizOpenApiReader.class.getName();
     private Components components;
     private Paths paths;
-    private Set<Tag> openApiTags;
     @SuppressWarnings("rawtypes")
     private Map<String, Schema> schemas;
     private OpenAPI openApi;
-
-    public OFBizOpenApiReader() {
-        openApiTags = new LinkedHashSet<>();
-    }
+    private DispatchContext context;
+    private static final Parameter HEADER_CONTENT_TYPE_JSON = new HeaderParameter().name(HttpHeaders.CONTENT_TYPE)
+            .schema(new StringSchema()).example(javax.ws.rs.core.MediaType.APPLICATION_JSON).required(true);
+    private static final Parameter HEADER_ACCEPT_JSON = new HeaderParameter().name(HttpHeaders.ACCEPT)
+            .schema(new StringSchema()).example(javax.ws.rs.core.MediaType.APPLICATION_JSON).required(true);
 
     @Override
     public void setConfiguration(OpenAPIConfiguration openApiConfiguration) {
@@ -79,16 +84,124 @@ public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
     @Override
     public OpenAPI read(Set<Class<?>> classes, Map<String, Object> resources) {
         openApi = super.read(classes, resources);
-        if (openApi.getTags() != null) {
-            openApiTags.addAll(openApi.getTags());
-        }
+        ServletContext servletContext = ApiContextListener.getApplicationCntx();
+        LocalDispatcher dispatcher = WebAppUtil.getDispatcher(servletContext);
+        context = dispatcher.getDispatchContext();
+        initializeStdOpenApiComponents();
+        addPredefinedSchemas();
+        addExportableServices();
+        addApiResources();
+        openApi.setPaths(paths);
+        openApi.setComponents(components);
+        return openApi;
+    }
 
+    private void addApiResources() {
+        Map<String, ModelApi> apis = OFBizApiConfig.getModelApis();
+        SecurityRequirement security = new SecurityRequirement();
+        security.addList("jwtToken");
+        apis.forEach((k, v) -> {
+            List<ModelResource> resources = v.getResources();
+            resources.forEach(modelResource -> {
+                Tag resourceTab = new Tag().name(modelResource.getDisplayName()).description(modelResource.getDescription());
+                openApi.addTagsItem(resourceTab);
+                String basePath = modelResource.getPath();
+                for (ModelOperation op : modelResource.getOperations()) {
+                    String uri = basePath + op.getPath();
+                    boolean pathExists = false;
+                    PathItem pathItemObject = paths.get(uri);
+                    if (UtilValidate.isEmpty(pathItemObject)) {
+                        pathItemObject = new PathItem();
+                    } else {
+                        pathExists = true;
+                    }
+                    String serviceName = op.getService();
+                    final Operation operation = new Operation().summary(op.getDescription())
+                            .description(op.getDescription()).addTagsItem(modelResource.getDisplayName())
+                            .operationId(serviceName).deprecated(false).addSecurityItem(security);
+                    String verb = op.getVerb().toUpperCase();
+                    ModelService service = null;
+                    try {
+                        service = context.getModelService(serviceName);
+                    } catch (GenericServiceException e) {
+                        Debug.logError("Service '" + serviceName + "' not found while trying to map REST resource " + uri + "; ignoring. ", MODULE);
+                        continue;
+                    }
+                    if (verb.equalsIgnoreCase(HttpMethod.GET)) {
+                        final QueryParameter serviceInParam = (QueryParameter) new QueryParameter().required(true)
+                                .description("Operation Input Parameters in JSON").name("input");
+                        Schema<?> refSchema = new Schema<>();
+                        refSchema.$ref("#/components/schemas/" + "api.request." + service.getName());
+                        serviceInParam.schema(refSchema);
+                        operation.addParametersItem(serviceInParam);
+                        operation.addParametersItem(HEADER_ACCEPT_JSON);
+                    } else if (verb.matches(HttpMethod.POST + "|" + HttpMethod.PUT + "|" + HttpMethod.PATCH)) {
+                        RequestBody request = new RequestBody()
+                                .description("Request Body for operation " + op.getDescription())
+                                .content(new Content().addMediaType(javax.ws.rs.core.MediaType.APPLICATION_JSON,
+                                        new MediaType().schema(new Schema<>()
+                                                .$ref("#/components/schemas/" + "api.request." + service.getName()))));
+                        operation.setRequestBody(request);
+                        operation.addParametersItem(HEADER_CONTENT_TYPE_JSON);
+                    }
+                    addServiceOutSchema(service);
+                    addServiceInSchema(service);
+                    addServiceOperationApiResponses(service, operation);
+                    setPathItemOperation(pathItemObject, verb.toUpperCase(), operation);
+                    if (!pathExists) {
+                        paths.addPathItem(basePath + op.getPath(), pathItemObject);
+                    }
+                }
+            });
+        });
+    }
+
+    private void addExportableServices() {
+        Set<String> serviceNames = context.getAllServiceNames();
+        for (String serviceName : serviceNames) {
+            ModelService service = null;
+            try {
+                service = context.getModelService(serviceName);
+            } catch (GenericServiceException e) {
+                e.printStackTrace();
+            }
+            if (service != null && service.isExport() && UtilValidate.isNotEmpty(service.getAction())) {
+                String action = service.getAction().toUpperCase();
+                SecurityRequirement security = new SecurityRequirement();
+                security.addList("jwtToken");
+                final Operation operation = new Operation().summary(service.getDescription())
+                        .description(service.getDescription()).addTagsItem("Exported Services")
+                        .operationId(service.getName()).deprecated(false).addSecurityItem(security);
+                PathItem pathItemObject = new PathItem();
+                if (service.getAction().equalsIgnoreCase(HttpMethod.GET)) {
+                    final QueryParameter serviceInParam = (QueryParameter) new QueryParameter().required(true)
+                            .description("Service In Parameters in JSON").name("inParams");
+                    Schema<?> refSchema = new Schema<>();
+                    refSchema.$ref("#/components/schemas/" + "api.request." + service.getName());
+                    serviceInParam.schema(refSchema);
+                    operation.addParametersItem(serviceInParam);
+                    operation.addParametersItem(HEADER_ACCEPT_JSON);
+                } else if (action.matches(HttpMethod.POST + "|" + HttpMethod.PUT + "|" + HttpMethod.PATCH)) {
+                    RequestBody request = new RequestBody().description("Request Body for service " + service.getName())
+                            .content(new Content().addMediaType(javax.ws.rs.core.MediaType.APPLICATION_JSON,
+                                    new MediaType().schema(new Schema<>().$ref("#/components/schemas/" + "api.request." + service.getName()))));
+                    operation.setRequestBody(request);
+                    operation.addParametersItem(HEADER_CONTENT_TYPE_JSON);
+                }
+                addServiceOutSchema(service);
+                addServiceInSchema(service);
+                addServiceOperationApiResponses(service, operation);
+                setPathItemOperation(pathItemObject, service.getAction().toUpperCase(), operation);
+                paths.addPathItem("/services/" + service.getName(), pathItemObject);
+            }
+        }
+    }
+
+    private void initializeStdOpenApiComponents() {
         Tag serviceResourceTag = new Tag().name("Exported Services")
                 .description("OFBiz services that are exposed via REST interface with export attribute set to true");
-        openApiTags.add(serviceResourceTag);
-        openApi.setTags(new ArrayList<Tag>(openApiTags));
+        openApi.addTagsItem(serviceResourceTag);
         components = openApi.getComponents();
-
         if (components == null) {
             components = new Components();
         }
@@ -101,66 +214,6 @@ public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
         if (paths == null) {
             paths = new Paths();
         }
-
-        ServletContext servletContext = ApiContextListener.getApplicationCntx();
-        LocalDispatcher dispatcher = WebAppUtil.getDispatcher(servletContext);
-        DispatchContext context = dispatcher.getDispatchContext();
-        Set<String> serviceNames = context.getAllServiceNames();
-
-        for (String serviceName : serviceNames) {
-            ModelService service = null;
-            try {
-                service = context.getModelService(serviceName);
-            } catch (GenericServiceException e) {
-                e.printStackTrace();
-            }
-            if (service != null && service.isExport() && UtilValidate.isNotEmpty(service.getAction())) {
-                SecurityRequirement security = new SecurityRequirement();
-                security.addList("jwtToken");
-                final Operation operation = new Operation().summary(service.getDescription())
-                        .description(service.getDescription()).addTagsItem("Exported Services").operationId(service.getName())
-                        .deprecated(false).addSecurityItem(security);
-
-                PathItem pathItemObject = new PathItem();
-
-                if (service.getAction().equalsIgnoreCase(HttpMethod.GET)) {
-                    final QueryParameter serviceInParam = (QueryParameter) new QueryParameter().required(true)
-                            .description("Service In Parameters in JSON").name("inParams");
-                    Schema<?> refSchema = new Schema<>();
-                    refSchema.$ref(service.getName() + "Request");
-                    serviceInParam.schema(refSchema);
-                    operation.addParametersItem(serviceInParam);
-
-                } else if (service.getAction().equalsIgnoreCase(HttpMethod.POST)) {
-                    RequestBody request = new RequestBody().description("Request Body for service " + service.getName())
-                            .content(new Content().addMediaType(javax.ws.rs.core.MediaType.APPLICATION_JSON,
-                                    new MediaType().schema(new Schema<>().$ref(service.getName() + "Request"))));
-                    operation.setRequestBody(request);
-                }
-
-                ApiResponses apiResponsesObject = new ApiResponses();
-                ApiResponse successResponse = new ApiResponse().description("Success");
-                Content content = new Content();
-                MediaType jsonMediaType = new MediaType();
-                Schema<?> refSchema = new Schema<>();
-                refSchema.$ref(service.getName() + "Response");
-                jsonMediaType.setSchema(refSchema);
-                setOutSchemaForService(service);
-                setInSchemaForService(service);
-                content.addMediaType(javax.ws.rs.core.MediaType.APPLICATION_JSON, jsonMediaType);
-
-                apiResponsesObject.addApiResponse("200", successResponse.content(content));
-                setPathItemOperation(pathItemObject, service.getAction().toUpperCase(), operation);
-                operation.setResponses(apiResponsesObject);
-                paths.addPathItem("/services/" + service.getName(), pathItemObject);
-
-            }
-        }
-
-        openApi.setPaths(paths);
-        openApi.setComponents(components);
-
-        return openApi;
     }
 
     private void setPathItemOperation(PathItem pathItemObject, String method, Operation operation) {
@@ -192,51 +245,28 @@ public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
         }
     }
 
-    private void setOutSchemaForService(ModelService service) {
-        Schema<Object> parentSchema = new Schema<Object>();
-        parentSchema.setDescription("Out Schema for service: " + service.getName() + " response");
-        parentSchema.setType("object");
-        parentSchema.addProperties("statusCode", new IntegerSchema().description("HTTP Status Code"));
-        parentSchema.addProperties("statusDescription", new StringSchema().description("HTTP Status Code Description"));
-        parentSchema.addProperties("successMessage", new StringSchema().description("Success Message"));
-        ObjectSchema dataSchema = new ObjectSchema();
-        parentSchema.addProperties("data", dataSchema);
-        service.getOutParamNamesMap().forEach((name, type) -> {
-            Schema<?> schema = null;
-            Class<?> schemaClass = OpenApiUtil.getOpenApiSchema(type);
-            if (schemaClass == null) {
-                return;
-            }
-            try {
-                schema = (Schema<?>) schemaClass.newInstance();
-            } catch (InstantiationException | IllegalAccessException e) {
-            }
-            if (schema instanceof ArraySchema) {
-                ArraySchema arraySchema = (ArraySchema) schema;
-                arraySchema.items(new StringSchema());
-            }
-            dataSchema.addProperties(name, schema.description(name));
-        });
-        schemas.put(service.getName() + "Response", parentSchema);
+    private void addServiceOutSchema(ModelService service) {
+        schemas.put("api.response." + service.getName() + ".success", OpenApiUtil.getOutSchema(service));
     }
 
-    private void setInSchemaForService(ModelService service) {
-        Schema<Object> parentSchema = new Schema<Object>();
-        parentSchema.setDescription("In Schema for service: " + service.getName() + " request");
-        parentSchema.setType("object");
-        service.getInParamNamesMap().forEach((name, type) -> {
-            Schema<?> schema = null;
-            Class<?> schemaClass = OpenApiUtil.getOpenApiSchema(type);
-            if (schemaClass == null) {
-                return;
-            }
-            try {
-                schema = (Schema<?>) schemaClass.newInstance();
-            } catch (InstantiationException | IllegalAccessException e) {
-            }
-            parentSchema.addProperties(name, schema.description(name));
+    private void addServiceInSchema(ModelService service) {
+        schemas.put("api.request." + service.getName(), OpenApiUtil.getInSchema(service));
+    }
+
+    private void addPredefinedSchemas() {
+        OpenApiUtil.getStandardApiResponseSchemas().forEach((name, schema) -> {
+            schemas.put(name, schema);
         });
-        schemas.put(service.getName() + "Request", parentSchema);
+    }
+
+    private void addServiceOperationApiResponses(ModelService service, Operation operation) {
+        ApiResponses apiResponsesObject = new ApiResponses();
+        ApiResponse successResponse = OpenApiUtil.buildSuccessResponse(service);
+        apiResponsesObject.addApiResponse(String.valueOf(Response.Status.OK.getStatusCode()), successResponse);
+        OpenApiUtil.getStandardApiResponses().forEach((code, response) -> {
+            apiResponsesObject.addApiResponse(code, response);
+        });
+        operation.setResponses(apiResponsesObject);
     }
 
 }

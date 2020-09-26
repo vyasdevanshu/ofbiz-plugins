@@ -32,14 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.response.FacetField;
-import org.apache.solr.client.solrj.response.FacetField.Count;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.ofbiz.base.util.Debug;
 import org.apache.ofbiz.base.util.UtilGenerics;
 import org.apache.ofbiz.base.util.UtilMisc;
@@ -54,6 +46,14 @@ import org.apache.ofbiz.service.DispatchContext;
 import org.apache.ofbiz.service.GenericServiceException;
 import org.apache.ofbiz.service.LocalDispatcher;
 import org.apache.ofbiz.service.ServiceUtil;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.FacetField;
+import org.apache.solr.client.solrj.response.FacetField.Count;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
+import org.apache.solr.common.SolrInputDocument;
 
 /**
  * Base class for OFBiz Test Tools test case implementations.
@@ -174,7 +174,7 @@ public abstract class SolrProductSearch {
                 try {
                     client.close();
                 } catch (IOException e) {
-                    // do nothing
+                    Debug.logError(e, MODULE);
                 }
             }
         }
@@ -247,7 +247,7 @@ public abstract class SolrProductSearch {
                 try {
                     client.close();
                 } catch (IOException e) {
-                    // do nothing
+                    Debug.logError(e, MODULE);
                 }
             }
         }
@@ -358,7 +358,7 @@ public abstract class SolrProductSearch {
                 try {
                     client.close();
                 } catch (IOException e) {
-                    // do nothing
+                    Debug.logError(e, MODULE);
                 }
             }
         }
@@ -488,8 +488,9 @@ public abstract class SolrProductSearch {
                 Map<String, Long> facetEntry = new HashMap<>();
                 List<FacetField.Count> facetEntries = facet.getValues();
                 if (UtilValidate.isNotEmpty(facetEntries)) {
-                    for (FacetField.Count fcount : facetEntries)
+                    for (FacetField.Count fcount : facetEntries) {
                         facetEntry.put(fcount.getName(), fcount.getCount());
+                    }
                     facetFields.put(facet.getName(), facetEntry);
                 }
             }
@@ -518,8 +519,9 @@ public abstract class SolrProductSearch {
         String solrIndexName = (String) context.get("indexName");
         try {
             boolean displayProducts = false;
-            if (UtilValidate.isNotEmpty(context.get("displayProducts")))
+            if (UtilValidate.isNotEmpty(context.get("displayProducts"))) {
                 displayProducts = (Boolean) context.get("displayProducts");
+            }
 
             int viewIndex = 0;
             int viewSize = 9;
@@ -721,7 +723,7 @@ public abstract class SolrProductSearch {
                 try {
                     client.close();
                 } catch (IOException e) {
-                    // do nothing
+                    Debug.logError(e, e.getMessage(), MODULE);
                 }
             }
         }

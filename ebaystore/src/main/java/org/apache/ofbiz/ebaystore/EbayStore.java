@@ -1260,7 +1260,7 @@ public class EbayStore {
                     storeTheme.setThemeID(Integer.parseInt((String) context.get("storeAdvancedTheme")));
                 } else if ("Basic".equals(context.get("themeType"))) {
                     storeColorScheme = new StoreColorSchemeType();
-                    if (context.get("storeBasicTheme")!=null) {
+                    if (context.get("storeBasicTheme") != null) {
                         String storeBasicTheme = (String) context.get("storeBasicTheme");
                         String storeThemeId = null;
                         String storeColorSchemeId = null;
@@ -1390,7 +1390,6 @@ public class EbayStore {
             }
             result.put("activeItems", activeItems);
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             return ServiceUtil.returnError(e.getMessage());
         }
         return result;

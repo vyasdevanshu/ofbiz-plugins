@@ -37,3 +37,4 @@ include::../../myportal/src/docs/asciidoc/my-portal.adoc[leveloffset=+1]
 
 include::../../projectmgr/src/docs/asciidoc/project-mgr.adoc[leveloffset=+1]
 
+include::../../scrum/src/docs/asciidoc/scrum.adoc[leveloffset=+1]
