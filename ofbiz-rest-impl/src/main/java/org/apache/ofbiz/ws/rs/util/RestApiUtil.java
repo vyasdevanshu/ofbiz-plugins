@@ -18,10 +18,17 @@
  *******************************************************************************/
 package org.apache.ofbiz.ws.rs.util;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+import org.apache.ofbiz.base.util.UtilValidate;
 import org.apache.ofbiz.ws.rs.response.Error;
 import org.apache.ofbiz.ws.rs.response.Success;
 
@@ -48,5 +55,38 @@ public final class RestApiUtil {
     public static ResponseBuilder errorBuilder(int statusCode, String reasonPhrase, String message) {
         Error error = new Error(statusCode, reasonPhrase, message);
         return Response.status(statusCode).type(MediaType.APPLICATION_JSON).entity(error);
+    }
+
+    /**
+     * @param multivaluedMap
+     * @return
+     */
+    public static Map<String, Object> extractParams(MultivaluedMap<String, String> multivaluedMap) {
+        Map<String, Object> result = new HashMap<>();
+        multivaluedMap.forEach((name, values) -> {
+            if (UtilValidate.isNotEmpty(values)) {
+                result.put(name, (values.size() != 1) ? values : values.get(0));
+            }
+        });
+        return result;
+    }
+
+    /**
+     * Extracts path parameters from resource pathInfo
+     * @param pathInfo
+     * @return
+     */
+    public static List<String> getPathParameters(String pathInfo) {
+        List<String> pathParams = new ArrayList<>();
+        if (pathInfo == null) {
+            return pathParams;
+        }
+        String[] pathParts = pathInfo.split("/");
+        for (String pathSegement : pathParts) {
+            if (pathSegement.startsWith("{") && pathSegement.endsWith("}")) {
+                pathParams.add(pathSegement.substring(1, pathSegement.length() - 1));
+            }
+        }
+        return pathParams;
     }
 }

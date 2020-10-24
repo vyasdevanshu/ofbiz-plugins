@@ -33,6 +33,7 @@ import org.apache.ofbiz.base.component.ComponentConfig;
 import org.apache.ofbiz.base.component.ComponentException;
 import org.apache.ofbiz.base.util.Debug;
 import org.apache.ofbiz.base.util.UtilValidate;
+import org.apache.ofbiz.ws.rs.ServiceRequestFilter;
 import org.apache.ofbiz.ws.rs.model.ModelApi;
 import org.apache.ofbiz.ws.rs.model.ModelApiReader;
 import org.apache.ofbiz.ws.rs.model.ModelOperation;
@@ -57,6 +58,7 @@ public class OFBizApiConfig extends ResourceConfig {
         // packages("io.swagger.v3.jaxrs2.integration.resources"); //commenting it out
         // to generate customized OpenApi Spec
         register(JacksonFeature.class);
+        register(ServiceRequestFilter.class);
         register(MultiPartFeature.class);
         if (Debug.verboseOn()) {
             register(new LoggingFeature(Logger.getLogger(LoggingFeature.DEFAULT_LOGGER_NAME), Level.INFO,
@@ -98,6 +100,10 @@ public class OFBizApiConfig extends ResourceConfig {
             return;
         }
         MICRO_APIS.forEach((k, v) -> {
+            if (!v.isPublish()) {
+                Debug.logInfo("API '" + v.getName() + "' is declared to be a non-publish, ignoring...", MODULE);
+                return;
+            }
             Debug.logInfo("Registring Resource Definitions from API - " + k, MODULE);
             List<ModelResource> resources = v.getResources();
             resources.forEach(modelResource -> {

@@ -33,6 +33,7 @@ import org.apache.ofbiz.base.util.UtilValidate;
 import org.apache.ofbiz.service.DispatchContext;
 import org.apache.ofbiz.service.GenericServiceException;
 import org.apache.ofbiz.service.LocalDispatcher;
+import org.apache.ofbiz.service.ModelParam;
 import org.apache.ofbiz.service.ModelService;
 import org.apache.ofbiz.webapp.WebAppUtil;
 import org.apache.ofbiz.ws.rs.core.OFBizApiConfig;
@@ -41,6 +42,7 @@ import org.apache.ofbiz.ws.rs.model.ModelApi;
 import org.apache.ofbiz.ws.rs.model.ModelOperation;
 import org.apache.ofbiz.ws.rs.model.ModelResource;
 import org.apache.ofbiz.ws.rs.util.OpenApiUtil;
+import org.apache.ofbiz.ws.rs.util.RestApiUtil;
 
 import io.swagger.v3.jaxrs2.Reader;
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
@@ -56,6 +58,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.HeaderParameter;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.parameters.PathParameter;
 import io.swagger.v3.oas.models.parameters.QueryParameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -101,6 +104,9 @@ public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
         SecurityRequirement security = new SecurityRequirement();
         security.addList("jwtToken");
         apis.forEach((k, v) -> {
+            if (!v.isPublish()) {
+                return;
+            }
             List<ModelResource> resources = v.getResources();
             resources.forEach(modelResource -> {
                 Tag resourceTab = new Tag().name(modelResource.getDisplayName()).description(modelResource.getDescription());
@@ -132,7 +138,8 @@ public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
                                 .description("Operation Input Parameters in JSON").name("input");
                         Schema<?> refSchema = new Schema<>();
                         refSchema.$ref("#/components/schemas/" + "api.request." + service.getName());
-                        serviceInParam.schema(refSchema);
+                        serviceInParam.content(new Content().addMediaType(javax.ws.rs.core.MediaType.APPLICATION_JSON,
+                                new MediaType().schema(refSchema)));
                         operation.addParametersItem(serviceInParam);
                         operation.addParametersItem(HEADER_ACCEPT_JSON);
                     } else if (verb.matches(HttpMethod.POST + "|" + HttpMethod.PUT + "|" + HttpMethod.PATCH)) {
@@ -143,6 +150,16 @@ public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
                                                 .$ref("#/components/schemas/" + "api.request." + service.getName()))));
                         operation.setRequestBody(request);
                         operation.addParametersItem(HEADER_CONTENT_TYPE_JSON);
+                    }
+                    List<String> pathParams = RestApiUtil.getPathParameters(uri);
+                    for (String pathParam : pathParams) {
+                        ModelParam mdParam = service.getInModelParamList().stream()
+                                .filter(param -> (!param.getInternal() && pathParam.equals(param.getName())))
+                                .findFirst().orElse(null);
+                        final PathParameter pathParameter = (PathParameter) new PathParameter().required(true)
+                                .description(mdParam != null ? mdParam.getShortDisplayDescription() : "")
+                                .name(pathParam);
+                        operation.addParametersItem(pathParameter);
                     }
                     addServiceOutSchema(service);
                     addServiceInSchema(service);
@@ -174,12 +191,17 @@ public final class OFBizOpenApiReader extends Reader implements OpenApiReader {
                         .operationId(service.getName()).deprecated(false).addSecurityItem(security);
                 PathItem pathItemObject = new PathItem();
                 if (service.getAction().equalsIgnoreCase(HttpMethod.GET)) {
-                    final QueryParameter serviceInParam = (QueryParameter) new QueryParameter().required(true)
-                            .description("Service In Parameters in JSON").name("inParams");
-                    Schema<?> refSchema = new Schema<>();
-                    refSchema.$ref("#/components/schemas/" + "api.request." + service.getName());
-                    serviceInParam.schema(refSchema);
-                    operation.addParametersItem(serviceInParam);
+                    boolean inParamsEmpty = UtilValidate.isEmpty(service.getInParamNamesMap());
+                    if (!inParamsEmpty) {
+                        final QueryParameter serviceInParam = (QueryParameter) new QueryParameter()
+                                .required(!inParamsEmpty)
+                                .description("Service In Parameters in JSON").name("inParams");
+                        Schema<?> refSchema = new Schema<>();
+                        refSchema.$ref("#/components/schemas/" + "api.request." + service.getName());
+                        serviceInParam.content(new Content().addMediaType(javax.ws.rs.core.MediaType.APPLICATION_JSON,
+                                new MediaType().schema(refSchema)));
+                        operation.addParametersItem(serviceInParam);
+                    }
                     operation.addParametersItem(HEADER_ACCEPT_JSON);
                 } else if (action.matches(HttpMethod.POST + "|" + HttpMethod.PUT + "|" + HttpMethod.PATCH)) {
                     RequestBody request = new RequestBody().description("Request Body for service " + service.getName())

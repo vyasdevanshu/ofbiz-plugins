@@ -54,13 +54,17 @@ import org.apache.ofbiz.service.LocalDispatcher;
 import org.apache.ofbiz.service.ModelService;
 import org.apache.ofbiz.ws.rs.ApiServiceRequest;
 import org.apache.ofbiz.ws.rs.ServiceRequestProcessor;
+import org.apache.ofbiz.ws.rs.annotation.ServiceRequestValidator;
 import org.apache.ofbiz.ws.rs.response.Success;
 import org.apache.ofbiz.ws.rs.security.Secured;
 
 @Secured
-@Path("/services")
+@Path(OFBizServiceResource.BASE_PATH)
 @Provider
+@ServiceRequestValidator
 public class OFBizServiceResource extends OFBizResource {
+
+    public static final String BASE_PATH = "/services";
 
     @Context
     private UriInfo uriInfo;
@@ -109,9 +113,6 @@ public class OFBizServiceResource extends OFBizResource {
     @Secured
     public Response doGet(@QueryParam(value = "inParams") ApiServiceRequest serviceRequest,
             @PathParam(value = "serviceName") String serviceName) throws IOException, GenericServiceException {
-        if (UtilValidate.isEmpty(serviceRequest) || UtilValidate.isEmpty(serviceRequest.getInParams())) {
-            throw new BadRequestException("Missing Parameter: 'inParams'");
-        }
         ServiceRequestProcessor processor = new ServiceRequestProcessor();
         return processor.process(UtilMisc.toMap("serviceName", serviceName, "httpVerb", HttpMethod.GET, "requestMap",
                 serviceRequest.getInParams(), "dispatcher", getDispatcher(), "request", httpRequest));
