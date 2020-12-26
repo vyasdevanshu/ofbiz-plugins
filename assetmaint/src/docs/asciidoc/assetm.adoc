@@ -1,5 +1,4 @@
-<?xml version="1.0"?>
-<!--
+////
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
 distributed with this work for additional information
@@ -16,21 +15,9 @@ software distributed under the License is distributed on an
 KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
--->
+////
+= Asset Maintenance plugin
 
-<chapter xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="5.0"
-         xmlns:xl="http://www.w3.org/1999/xlink"
-         xmlns:xi="http://www.w3.org/2001/XInclude"
-         xsi:schemaLocation="http://docbook.org/ns/docbook ../../../applications/content/dtd/docbook.xsd"
-         xmlns="http://docbook.org/ns/docbook">
+Assets are items of value that are owned by the business.
 
-    <title><anchor xml:id="Ofbiz-rest-jersey"/>The Ofbiz-rest-jersey Component
-    </title>
-    <section>
-        <title>Introduction</title>
-        <para>
-        </para>
-    </section>
-    <xi:include href="../data/helpdata/HELP_Ofbiz-rest-jersey.xml"/>
-
-</chapter>
+The Asset Maintenance application is used to schedule and trace all maintenance activities on assets.
